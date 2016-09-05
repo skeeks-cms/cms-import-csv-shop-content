@@ -10,10 +10,14 @@ use skeeks\cms\importCsv\helpers\CsvImportRowResult;
 use skeeks\cms\importCsvContent\ImportCsvContentHandler;
 use skeeks\cms\models\CmsContent;
 use skeeks\cms\models\CmsContentElement;
+use skeeks\cms\shop\models\ShopCmsContentElement;
 use skeeks\cms\shop\models\ShopContent;
 use skeeks\cms\shop\models\ShopProduct;
+use skeeks\cms\shop\models\ShopProductPrice;
+use yii\base\Exception;
 use yii\db\ActiveQuery;
 use yii\helpers\ArrayHelper;
+use yii\helpers\Json;
 use yii\widgets\ActiveForm;
 
 /**
@@ -131,6 +135,9 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
         return array_merge(['' => ' - '], $fields);
     }
 
+
+
+
     public function rules()
     {
         return ArrayHelper::merge(parent::rules(), [
@@ -213,6 +220,106 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
 
 
 
+    /**
+     * @param $code
+     *
+     * @return int|null
+     */
+    public function getChildrenColumnNumber($code)
+    {
+        if (in_array($code, $this->matchingChild))
+        {
+            foreach ($this->matchingChild as $number => $codeValue)
+            {
+                if ($codeValue == $code)
+                {
+                    return (int) $number;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param $code
+     * @param array $row
+     *
+     * @return null
+     */
+    public function getChildrenValue($code, $row = [])
+    {
+        $number = $this->getChildrenColumnNumber($code);
+
+        if ($number !== null)
+        {
+            return $row[$number];
+        }
+
+        return null;
+    }
+
+
+
+    protected function _initModelByFieldAfterSave(ShopCmsContentElement &$cmsContentElement, $fieldName, $value)
+    {
+        if (strpos("field_" . $fieldName, 'shop.'))
+        {
+            $realName = str_replace("shop.", "", $fieldName);
+            $shopProduct = $cmsContentElement->shopProduct;
+            $shopProduct->{$realName} = $value;
+            $shopProduct->save();
+
+        } else if (strpos("field_" . $fieldName, 'priceCurrency.'))
+        {
+            $priceTypeId = str_replace("priceCurrency.", "", $fieldName);
+            $shopProduct = $cmsContentElement->shopProduct;
+
+            $price = $shopProduct->getShopProductPrices()->andWhere(['type_price_id' => $priceTypeId])->one();
+
+            /**
+             * @var ShopProductPrice $price
+             */
+            if ($price)
+            {
+                $price->currency_code = $value;
+            } else
+            {
+                $price = new ShopProductPrice();
+                $price->type_price_id = $priceTypeId;
+                $price->product_id = $shopProduct->id;
+                $price->currency_code = $value;
+            }
+
+            $price->save();
+
+        } else if (strpos("field_" . $fieldName, 'priceValue.'))
+        {
+            $priceTypeId = str_replace("priceValue.", "", $fieldName);
+            $shopProduct = $cmsContentElement->shopProduct;
+
+            $price = $shopProduct->getShopProductPrices()->andWhere(['type_price_id' => $priceTypeId])->one();
+
+            $value = trim(str_replace(",", ".", $value));
+
+            /**
+             * @var ShopProductPrice $price
+             */
+            if ($price)
+            {
+                $price->price = $value;
+            } else
+            {
+                $price = new ShopProductPrice();
+                $price->type_price_id = $priceTypeId;
+                $price->product_id = $shopProduct->id;
+                $price->currency_code = "RUB";
+                $price->price = $value;
+            }
+
+            $price->save();
+        }
+    }
 
     /**
      * @param $number
@@ -223,114 +330,197 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
     public function import($number, $row)
     {
         $result = new CsvImportRowResult();
-
+        /**
+         * @var $element ShopCmsContentElement
+         */
         try
         {
             $isUpdate = false;
             $element = null;
 
-            if (!$this->unique_field)
+            $isChildren = false;
+            //Если есть настроен дочерний контент, если задано поле связи с родителем, и поле задано у родителя
+            if ($this->matchingChild && $this->parentRelationField && $this->getChildrenColumnNumber('relation'))
             {
-                $element                = new CmsContentElement();
-                $element->content_id    =   $this->content_id;
-            } else
-            {
-                $uniqueValue = trim($this->getValue($this->unique_field, $row));
-                if ($uniqueValue)
+                //Эта строка торговое предложение
+                if ($relation = $this->getChildrenValue('relation', $row))
                 {
-                    if (strpos("field_" . $this->unique_field, 'element.'))
-                    {
-                        $realName = str_replace("element.", "", $this->unique_field);
-                        $element = CmsContentElement::find()->where([$realName => $uniqueValue])->one();
-
-                    } else if (strpos("field_" . $this->unique_field, 'property.'))
-                    {
-                        $realName = str_replace("property.", "", $this->unique_field);
-
-                        $element = CmsContentElement::find()
-
-                            ->joinWith('relatedElementProperties map')
-                            ->joinWith('relatedElementProperties.property property')
-
-                            ->andWhere(['property.code'     => $realName])
-                            ->andWhere(['map.value'         => $uniqueValue])
-
-                            ->joinWith('cmsContent as ccontent')
-                            ->andWhere(['ccontent.id'        => $this->content_id])
-
-                            ->one()
-                        ;
-                    }
-                } else
-                {
-                    throw new Exception('Не задано уникальное значение');
+                    $isChildren = true;
                 }
+            }
 
-                if (!$element)
-                {
-                    $element                = new CmsContentElement();
-                    $element->content_id    =   $this->content_id;
-                } else
+            if ($isChildren)
+            {
+                $isUpdate = false;
+                $element = $this->_initElement($number, $row, $this->childrenCmsContent->id, ShopCmsContentElement::className());
+
+                if (!$element->isNewRecord)
                 {
                     $isUpdate = true;
+                } else
+                {
+                    //Нужно свзять предложение с товаром
+                    $relationValue = $this->getChildrenValue('relation', $row);
+                    $parentElement = $this->getElement($this->parentRelationField, $relationValue);
+                    if (!$parentElement)
+                    {
+                        throw new Exception('Торговое предложение, не найден товар к которому привязать.');
+                    } else
+                    {
+                        $element->parent_content_element_id = $parentElement->id;
+                        $element->name                      = $parentElement->name;
+                    }
                 }
-            }
 
-            foreach ($this->matching as $number => $fieldName)
-            {
-                //Выбрано соответствие
-                if ($fieldName)
+                foreach ($this->matchingChild as $number => $fieldName)
                 {
-                    $this->_initModelByField($element, $fieldName, $row[$number]);
+                    //Выбрано соответствие
+                    if ($fieldName)
+                    {
+                        $this->_initModelByField($element, $fieldName, $row[$number]);
+                    }
                 }
-            }
 
-            $element->validate();
-            $element->relatedPropertiesModel->validate();
+                $relation = $this->getChildrenValue('relation', $row);
 
-            if (!$element->errors && !$element->relatedPropertiesModel->errors)
-            {
-                $element->save();
+                $element->validate();
+                $element->relatedPropertiesModel->validate();
 
-                if (!$element->relatedPropertiesModel->save())
+                if (!$element->errors && !$element->relatedPropertiesModel->errors)
                 {
-                    throw new Exception('Не сохранены дополнительные данные');
-                };
+                    $element->save();
 
-                $imageUrl = $this->getValue('image', $row);
-                if ($imageUrl && !$element->image)
-                {
-                    try
+                    if (!$element->relatedPropertiesModel->save())
+                    {
+                        throw new Exception('Не сохранены дополнительные данные');
+                    };
+
+                    $imageUrl = $this->getValue('image', $row);
+                    if ($imageUrl && !$element->image)
                     {
                         $file = \Yii::$app->storage->upload($imageUrl, [
                             'name' => $element->name
                         ]);
 
                         $element->link('image', $file);
-
-                    } catch (\Exception $e)
-                    {
-                        //\Yii::error('Not upload image to: ' . $cmsContentElement->id . " ({$realUrl})", 'import');
                     }
+
+
+                    $shopProduct = $element->shopProduct;
+                    if (!$shopProduct)
+                    {
+                        $shopProduct = new ShopProduct();
+                        $shopProduct->baseProductPriceValue = 0;
+                        $shopProduct->baseProductPriceCurrency = "RUB";
+                        $shopProduct->id = $element->id;
+                        $shopProduct->product_type = ShopProduct::TYPE_OFFERS;
+                        $shopProduct->save();
+                    }
+
+                    foreach ($this->matchingChild as $number => $fieldName)
+                    {
+                        //Выбрано соответствие
+                        if ($fieldName)
+                        {
+                            $this->_initModelByFieldAfterSave($element, $fieldName, $row[$number]);
+                        }
+                    }
+
+                    $result->message        =   $isUpdate === true ? "Торговое предложение обновлено" : 'Торговое предложение создано' ;
+
+                    $rp = Json::encode($element->relatedPropertiesModel->toArray());
+                    //$rp = '';
+                    $result->html           =   <<<HTML
+    Товар: <a href="{$element->parentContentElement->url}" data-pjax="0" target="_blank">{$element->parentContentElement->id} (предложение: {$element->id})</a> $rp
+HTML;
+
+                } else
+                {
+                    $result->success        =   false;
+                    $result->message        =   'Ошибка';
+                    $result->html           =   Json::encode($element->errors) . "<br />" . Json::encode($element->relatedPropertiesModel->errors);
                 }
 
 
-                $result->message        =   $isUpdate === true ? "Элемент обновлен" : 'Элемент создан' ;
-
-                $rp = Json::encode($element->relatedPropertiesModel->toArray());
-                $rp = '';
-                $result->html           =   <<<HTML
-Элемент: <a href="{$element->url}" data-pjax="0" target="_blank">{$element->id}</a> $rp
-HTML;
-
             } else
             {
-                $result->success        =   false;
-                $result->message        =   'Ошибка';
-                $result->html           =   Json::encode($element->errors) . "<br />" . Json::encode($element->relatedPropertiesModel->errors);
+
+                $isUpdate = false;
+                $element = $this->_initElement($number, $row, $this->content_id, ShopCmsContentElement::className());
+                foreach ($this->matching as $number => $fieldName)
+                {
+                    //Выбрано соответствие
+                    if ($fieldName)
+                    {
+                        $this->_initModelByField($element, $fieldName, $row[$number]);
+                    }
+                }
+
+                if (!$element->isNewRecord)
+                {
+                    $isUpdate = true;
+                }
+
+                $element->validate();
+                $element->relatedPropertiesModel->validate();
+
+                if (!$element->errors && !$element->relatedPropertiesModel->errors)
+                {
+                    $element->save();
+
+                    if (!$element->relatedPropertiesModel->save())
+                    {
+                        throw new Exception('Не сохранены дополнительные данные');
+                    };
+
+                    $imageUrl = $this->getValue('image', $row);
+                    if ($imageUrl && !$element->image)
+                    {
+                        $file = \Yii::$app->storage->upload($imageUrl, [
+                            'name' => $element->name
+                        ]);
+
+                        $element->link('image', $file);
+                    }
+
+                    $shopProduct = $element->shopProduct;
+                    if (!$shopProduct)
+                    {
+                        $shopProduct = new ShopProduct();
+                        $shopProduct->baseProductPriceValue = 0;
+                        $shopProduct->baseProductPriceCurrency = "RUB";
+                        $shopProduct->id = $element->id;
+                        $shopProduct->product_type = ShopProduct::TYPE_OFFERS;
+                        $shopProduct->save();
+                    }
+
+                    foreach ($this->matching as $number => $fieldName)
+                    {
+                        //Выбрано соответствие
+                        if ($fieldName)
+                        {
+                            $this->_initModelByFieldAfterSave($element, $fieldName, $row[$number]);
+                        }
+                    }
+
+
+                    $result->message        =   $isUpdate === true ? "Товар обновлен" : 'Товар создан' ;
+
+                    $rp = Json::encode($element->relatedPropertiesModel->toArray());
+                    $rp = '';
+                    $result->html           =   <<<HTML
+    Товар: <a href="{$element->url}" data-pjax="0" target="_blank">{$element->id}</a> $rp
+HTML;
+
+                } else
+                {
+                    $result->success        =   false;
+                    $result->message        =   'Ошибка';
+                    $result->html           =   Json::encode($element->errors) . "<br />" . Json::encode($element->relatedPropertiesModel->errors);
+                }
             }
 
-            $result->data           =   $this->matching;
+
 
 
         } catch (\Exception $e)
