@@ -273,7 +273,7 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
         } else if (strpos("field_" . $fieldName, 'priceCurrency.'))
         {
             $priceTypeId = str_replace("priceCurrency.", "", $fieldName);
-            $shopProduct = $cmsContentElement->shopProduct;
+            $shopProduct = $cmsContentElement->getShopProduct()->one();
 
             $price = $shopProduct->getShopProductPrices()->andWhere(['type_price_id' => $priceTypeId])->one();
 
@@ -296,7 +296,7 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
         } else if (strpos("field_" . $fieldName, 'priceValue.'))
         {
             $priceTypeId = str_replace("priceValue.", "", $fieldName);
-            $shopProduct = $cmsContentElement->shopProduct;
+            $shopProduct = $cmsContentElement->getShopProduct()->one();
 
             $price = $shopProduct->getShopProductPrices()->andWhere(['type_price_id' => $priceTypeId])->one();
 
@@ -340,7 +340,7 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
 
             $isChildren = false;
             //Если есть настроен дочерний контент, если задано поле связи с родителем, и поле задано у родителя
-            if ($this->matchingChild && $this->parentRelationField && $this->getChildrenColumnNumber('relation'))
+            if ($this->matchingChild && $this->parentRelationField && $this->getChildrenColumnNumber('relation') !== null)
             {
                 //Эта строка торговое предложение
                 if ($relation = $this->getChildrenValue('relation', $row))
