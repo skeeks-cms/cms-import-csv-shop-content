@@ -301,20 +301,21 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
             $price = $shopProduct->getShopProductPrices()->andWhere(['type_price_id' => $priceTypeId])->one();
 
             $value = trim(str_replace(",", ".", $value));
+            $value = str_replace(" ", "", $value);
 
             /**
              * @var ShopProductPrice $price
              */
             if ($price)
             {
-                $price->price = $value;
+                $price->price = (float) $value;
             } else
             {
                 $price = new ShopProductPrice();
                 $price->type_price_id = $priceTypeId;
                 $price->product_id = $shopProduct->id;
                 $price->currency_code = "RUB";
-                $price->price = $value;
+                $price->price = (float) $value;
             }
 
             $price->save();
