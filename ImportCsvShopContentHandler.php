@@ -462,13 +462,13 @@ HTML;
                 }
 
                 $element->validate();
-                $element->relatedPropertiesModel->validate();
+                //$element->relatedPropertiesModel->validate();
 
                 if (!$element->errors && !$element->relatedPropertiesModel->errors)
                 {
                     $element->save();
 
-                    if (!$element->relatedPropertiesModel->save())
+                    if (!$element->relatedPropertiesModel->save(false))
                     {
                         throw new Exception('Не сохранены дополнительные данные');
                     };
