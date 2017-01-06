@@ -268,7 +268,11 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
             $realName = str_replace("shop.", "", $fieldName);
             $shopProduct = $cmsContentElement->shopProduct;
             $shopProduct->{$realName} = $value;
-            $shopProduct->save();
+
+            if (!$shopProduct->save())
+            {
+                throw new Exception('Свойство магазина не сохранено: ' . Json::encode($shopProduct->errors));
+            }
 
         } else if (strpos("field_" . $fieldName, 'priceCurrency.'))
         {
@@ -291,7 +295,10 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
                 $price->currency_code = $value;
             }
 
-            $price->save();
+            if (!$price->save())
+            {
+                throw new Exception('Цена не сохранена: ' . Json::encode($price->errors));
+            }
 
         } else if (strpos("field_" . $fieldName, 'priceValue.'))
         {
@@ -318,7 +325,10 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
                 $price->price = (float) $value;
             }
 
-            $price->save();
+            if (!$price->save())
+            {
+                throw new Exception('Цена не сохранена: ' . Json::encode($price->errors));
+            }
         }
     }
 
@@ -423,7 +433,13 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
                         //Выбрано соответствие
                         if ($fieldName)
                         {
-                            $this->_initModelByFieldAfterSave($element, $fieldName, $row[$number]);
+                            try
+                            {
+                                $this->_initModelByFieldAfterSave($element, $fieldName, $row[$number]);
+                            } catch (\Exception $e)
+                            {
+                                throw new Exception('Ошибка созранения поля: ' . $fieldName . $e->getMessage());
+                            }
                         }
                     }
 
@@ -495,15 +511,23 @@ HTML;
                         $shopProduct->save();
                     }
 
+
+                    $element->refresh();
+
                     foreach ($this->matching as $number => $fieldName)
                     {
                         //Выбрано соответствие
                         if ($fieldName)
                         {
-                            $this->_initModelByFieldAfterSave($element, $fieldName, $row[$number]);
+                            try
+                            {
+                                $this->_initModelByFieldAfterSave($element, $fieldName, $row[$number]);
+                            } catch (\Exception $e)
+                            {
+                                throw new Exception('Ошибка сохранения поля: ' . $fieldName . ": " . $e->getMessage());
+                            }
                         }
                     }
-
 
                     $result->message        =   $isUpdate === true ? "Товар обновлен" : 'Товар создан' ;
 
@@ -527,7 +551,7 @@ HTML;
         } catch (\Exception $e)
         {
             $result->success        =   false;
-            $result->message        =   $e->getMessage();
+            $result->message        =   "Ошибка: " . $e->getMessage();
         }
 
 
