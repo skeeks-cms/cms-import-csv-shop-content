@@ -266,8 +266,14 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
         if (strpos("field_" . $fieldName, 'shop.'))
         {
             $realName = str_replace("shop.", "", $fieldName);
+            if ($realName == 'quantity') {
+                $value = (float) $value;
+            }
+
             $shopProduct = $cmsContentElement->shopProduct;
             $shopProduct->{$realName} = $value;
+
+
 
             if (!$shopProduct->save())
             {
