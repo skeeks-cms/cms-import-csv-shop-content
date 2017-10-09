@@ -556,6 +556,7 @@ HTML;
 
         } catch (\Exception $e)
         {
+            throw $e;
             $result->success        =   false;
             $result->message        =   "Ошибка: " . $e->getMessage();
         }
