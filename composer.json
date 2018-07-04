@@ -17,13 +17,13 @@
 		}
 	],
 	"require": {
-		"skeeks/cms-import-csv": "*",
-		"skeeks/cms-import-csv-content": "*",
-		"skeeks/cms-shop": "*"
+		"skeeks/cms-import-csv": "^1.0",
+		"skeeks/cms-import-csv-content": "^1.0",
+		"skeeks/cms-shop": "^2.0"
 	},
     "autoload": {
         "psr-4": {
-            "skeeks\\cms\\importCsvShopContent\\": ""
+            "skeeks\\cms\\importCsvShopContent\\": "src/"
         }
     },
     "extra": {

@@ -365,6 +365,7 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
                     $isChildren = true;
                 }
             }
+            
 
             if ($isChildren)
             {
@@ -451,7 +452,9 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
 
                     $result->message        =   $isUpdate === true ? "Торговое предложение обновлено" : 'Торговое предложение создано' ;
 
-                    $rp = Json::encode($element->relatedPropertiesModel->toArray());
+                    $rp = $element->relatedPropertiesModel;
+                    $rp->initAllProperties();
+                    $rp = Json::encode($rp->toArray());
                     //$rp = '';
                     $result->html           =   <<<HTML
     Товар: <a href="{$element->parentContentElement->url}" data-pjax="0" target="_blank">{$element->parentContentElement->id} (предложение: {$element->id})</a> $rp
@@ -470,6 +473,8 @@ HTML;
 
                 $isUpdate = false;
                 $element = $this->_initElement($number, $row, $this->content_id, ShopCmsContentElement::className());
+                
+                                                                        
                 foreach ($this->matching as $number => $fieldName)
                 {
                     //Выбрано соответствие
@@ -489,8 +494,14 @@ HTML;
 
                 if (!$element->errors && !$element->relatedPropertiesModel->errors)
                 {
+                    
+/*print_r($element->toArray());
+print_r((new \ReflectionClass($element))->getName());
+                                                                        die();*/
+                                                                        
                     $element->save();
-
+                    
+                                                                        
                     if (!$element->relatedPropertiesModel->save(false))
                     {
                         throw new Exception('Не сохранены дополнительные данные');
@@ -537,6 +548,7 @@ HTML;
 
                     $result->message        =   $isUpdate === true ? "Товар обновлен" : 'Товар создан' ;
 
+                    $element->relatedPropertiesModel->initAllProperties();
                     $rp = Json::encode($element->relatedPropertiesModel->toArray());
                     $rp = '';
                     $result->html           =   <<<HTML
@@ -552,6 +564,7 @@ HTML;
             }
 
 
+            unset($element);
 
 
         } catch (\Exception $e)
