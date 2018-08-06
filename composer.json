@@ -17,9 +17,9 @@
 		}
 	],
 	"require": {
-		"skeeks/cms-import-csv": "^1.0",
-		"skeeks/cms-import-csv-content": "^1.0",
-		"skeeks/cms-shop": "^2.0"
+		"skeeks/cms-import-csv": "^1.0 || dev-master",
+		"skeeks/cms-import-csv-content": "^1.0 || dev-master",
+		"skeeks/cms-shop": "^2.0 || dev-master"
 	},
     "autoload": {
         "psr-4": {
