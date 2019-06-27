@@ -194,11 +194,6 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
                 ]
             );
 
-            echo $form->field($this, 'unique_field')->listBox(
-                array_merge(['' => ' - '], $this->getAvailableFields()), [
-                'size' => 1,
-            ]);
-
             if ($this->childrenCmsContent)
             {
                 echo $form->field($this, 'matchingChild')->widget(
@@ -477,10 +472,22 @@ HTML;
                                                                         
                 foreach ($this->matching as $number => $fieldName)
                 {
-                    //Выбрано соответствие
+                    $is_update_rewrite = true;
+
                     if ($fieldName)
                     {
-                        $this->_initModelByField($element, $fieldName, $row[$number]);
+                        if (is_array($fieldName)) {
+                            $fieldName = $fieldName['code'];
+                            $is_update_rewrite = ArrayHelper::getValue($fieldName, 'is_update_rewrite');
+                        }
+                        if ($element->isNewRecord) {
+                            $this->_initModelByField($element, $fieldName, $row[$number]);
+                        } else {
+                            if ($is_update_rewrite) {
+                                $this->_initModelByField($element, $fieldName, $row[$number]);
+                            }
+                        }
+
                     }
                 }
 
@@ -533,8 +540,28 @@ print_r((new \ReflectionClass($element))->getName());
 
                     foreach ($this->matching as $number => $fieldName)
                     {
-                        //Выбрано соответствие
+                        $is_update_rewrite = true;
+
                         if ($fieldName)
+                        {
+                            if (is_array($fieldName)) {
+                                $fieldName = $fieldName['code'];
+                                $is_update_rewrite = ArrayHelper::getValue($fieldName, 'is_update_rewrite');
+                            }
+
+                            if (!$isUpdate) {
+                                $this->_initModelByFieldAfterSave($element, $fieldName, $row[$number]);
+                            } else {
+                                if ($is_update_rewrite) {
+                                    $this->_initModelByFieldAfterSave($element, $fieldName, $row[$number]);
+                                }
+                            }
+
+                        }
+
+
+                        //Выбрано соответствие
+                        /*if ($fieldName)
                         {
                             try
                             {
@@ -543,7 +570,7 @@ print_r((new \ReflectionClass($element))->getName());
                             {
                                 throw new Exception('Ошибка сохранения поля: ' . $fieldName . ": " . $e->getMessage());
                             }
-                        }
+                        }*/
                     }
 
                     $result->message        =   $isUpdate === true ? "Товар обновлен" : 'Товар создан' ;
