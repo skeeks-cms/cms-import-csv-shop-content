@@ -545,8 +545,8 @@ print_r((new \ReflectionClass($element))->getName());
                         if ($fieldName)
                         {
                             if (is_array($fieldName)) {
-                                $fieldName = $fieldName['code'];
                                 $is_update_rewrite = ArrayHelper::getValue($fieldName, 'is_update_rewrite');
+                                $fieldName = $fieldName['code'];
                             }
 
                             if (!$isUpdate) {
