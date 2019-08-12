@@ -411,12 +411,31 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
                     $imageUrl = $this->getValue('image', $row);
                     if ($imageUrl && !$element->image)
                     {
+                        try
+                        {
+                            $images = explode(",", $imageUrl);
+
+                            $file = \Yii::$app->storage->upload($images[0], [
+                                'name' => $element->name
+                            ]);
+
+                            $element->link('image', $file);
+
+                        } catch (\Exception $e)
+                        {
+                            //\Yii::error('Not upload image to: ' . $e->getMessage() . " ({$realUrl})", 'import');
+                        }
+                    }
+
+                    /*$imageUrl = $this->getValue('image', $row);
+                    if ($imageUrl && !$element->image)
+                    {
                         $file = \Yii::$app->storage->upload($imageUrl, [
                             'name' => $element->name
                         ]);
 
                         $element->link('image', $file);
-                    }
+                    }*/
 
 
                     $shopProduct = $element->shopProduct;
@@ -514,7 +533,7 @@ print_r((new \ReflectionClass($element))->getName());
                         throw new Exception('Не сохранены дополнительные данные');
                     };
 
-                    $imageUrl = $this->getValue('image', $row);
+                    /*$imageUrl = $this->getValue('image', $row);
                     if ($imageUrl && !$element->image)
                     {
                         $file = \Yii::$app->storage->upload($imageUrl, [
@@ -522,6 +541,25 @@ print_r((new \ReflectionClass($element))->getName());
                         ]);
 
                         $element->link('image', $file);
+                    }*/
+
+                    $imageUrl = $this->getValue('image', $row);
+                    if ($imageUrl && !$element->image)
+                    {
+                        try
+                        {
+                            $images = explode(",", $imageUrl);
+
+                            $file = \Yii::$app->storage->upload($images[0], [
+                                'name' => $element->name
+                            ]);
+
+                            $element->link('image', $file);
+
+                        } catch (\Exception $e)
+                        {
+                            //\Yii::error('Not upload image to: ' . $e->getMessage() . " ({$realUrl})", 'import');
+                        }
                     }
 
                     $shopProduct = $element->shopProduct;
