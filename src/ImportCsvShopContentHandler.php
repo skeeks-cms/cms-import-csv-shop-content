@@ -81,6 +81,15 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
             'size'             => 1,
             'data-form-reload' => 'true',
         ]);
+
+        if ($this->content_id && $this->rootFilePath && file_exists($this->rootFilePath)) {
+            echo $form->field($this, 'matching')->widget(
+                \skeeks\cms\importCsv\widgets\MatchingInput::className(),
+                [
+                    'columns' => $this->getAvailableFields()
+                ]
+            );
+        }
     }
 
 
