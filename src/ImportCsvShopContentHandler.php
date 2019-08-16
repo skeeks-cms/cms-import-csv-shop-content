@@ -236,7 +236,7 @@ HTML;
             $result->success = false;
             $result->message = $e->getMessage();
             
-            if (!$element->isNewRecord) {
+            if ($element && !$element->isNewRecord) {
                  $result->html = <<<HTML
 Элемент: <a href="{$element->url}" data-pjax="0" target="_blank">{$element->id}</a>
 HTML;
