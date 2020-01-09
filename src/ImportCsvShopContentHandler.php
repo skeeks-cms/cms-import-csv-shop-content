@@ -372,7 +372,9 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
                 if ($this->shop_supplier_id) {
                     $shopProduct->shop_supplier_id = $this->shop_supplier_id;
                 }
-                $shopProduct->save();
+                if (!$shopProduct->save()) {
+                    throw new Exception("Ошибка сохранения shopProduct: ".print_r($shopProduct->errors, true));
+                }
             }
             $element->refresh();
 
