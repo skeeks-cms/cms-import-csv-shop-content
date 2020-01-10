@@ -369,9 +369,9 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
                 $shopProduct->baseProductPriceCurrency = "RUB";
                 $shopProduct->id = $element->id;
                 $shopProduct->product_type = ShopProduct::TYPE_OFFERS;
-                if ($this->shop_supplier_id) {
-                    $shopProduct->shop_supplier_id = $this->shop_supplier_id;
-                }
+
+                $shopProductIsUpdate = true;
+                
                 if (!$shopProduct->save()) {
                     throw new Exception("Ошибка сохранения shopProduct: ".print_r($shopProduct->errors, true));
                 }
@@ -409,6 +409,11 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
             }
             
             if ($shopProductIsUpdate) {
+
+                if ($this->shop_supplier_id) {
+                    $element->shopProduct->shop_supplier_id = $this->shop_supplier_id;
+                }
+
                 if (!$element->shopProduct->save()) {
                     throw new Exception('Свойство магазина не сохранено: '.Json::encode($element->shopProduct->errors));
                 }
