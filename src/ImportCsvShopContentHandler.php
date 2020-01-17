@@ -11,6 +11,7 @@ namespace skeeks\cms\importCsvShopContent;
 use skeeks\cms\importCsv\helpers\CsvImportRowResult;
 use skeeks\cms\importCsvContent\ImportCsvContentHandler;
 use skeeks\cms\models\CmsContent;
+use skeeks\cms\models\CmsContentProperty;
 use skeeks\cms\shop\models\ShopCmsContentElement;
 use skeeks\cms\shop\models\ShopProduct;
 use skeeks\cms\shop\models\ShopProductPrice;
@@ -279,6 +280,7 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
             $className = CmsContentElement::className();
         }
 
+
         if (!$this->unique_field) {
             $element = new $className();
             $element->content_id = $contentId;
@@ -301,12 +303,16 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
                     $element = $elementQuery->one();
 
                 } else if (strpos("field_".$this->unique_field, 'property.')) {
+
+
+
                     $realName = str_replace("property.", "", $this->unique_field);
 
                     /**
                      * @var $property CmsContentProperty
                      */
                     $property = CmsContentProperty::find()->where(['code' => $realName])->one();
+
                     $query = $className::find();
                     $className::filterByProperty($query, $property, $uniqueValue);
 
