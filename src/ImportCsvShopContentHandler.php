@@ -371,6 +371,7 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
             $shopProduct = $element->shopProduct;
             if (!$shopProduct) {
                 $shopProduct = new ShopProduct();
+                $shopProduct->quantity = 0;
                 $shopProduct->baseProductPriceValue = 0;
                 $shopProduct->baseProductPriceCurrency = "RUB";
                 $shopProduct->id = $element->id;
