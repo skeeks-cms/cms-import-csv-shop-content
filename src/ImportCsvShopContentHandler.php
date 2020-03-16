@@ -46,6 +46,11 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
      */
     public $is_save_source_data = false;
 
+    /**
+     * @var bool Обнулить количество у файлов которых нет в файле?
+     */
+    public $is_quantity_clean = false;
+
 
 
 
@@ -82,6 +87,7 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
         return ArrayHelper::merge(parent::rules(), [
             [['shop_supplier_id', 'shop_store_id'], 'integer'],
             ['is_save_source_data', 'boolean'],
+            ['is_quantity_clean', 'boolean'],
         ]);
     }
 
@@ -91,7 +97,8 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
         return ArrayHelper::merge(parent::attributeLabels(), [
             'shop_supplier_id' => 'Поставщик',
             'shop_store_id' => 'Поставка/Склад',
-            'is_save_source_data' => 'Сохранять исходные данные по товару?'
+            'is_save_source_data' => 'Сохранять исходные данные по товару?',
+            'is_quantity_clean' => 'Обнулить количество у товаров которых нет в файле?'
         ]);
     }
 
@@ -147,6 +154,9 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
             'size' => 1
         ]);
         echo $form->field($this, 'is_save_source_data')->listBox(\Yii::$app->formatter->booleanFormat, [
+            'size' => 1
+        ]);
+        echo $form->field($this, 'is_quantity_clean')->listBox(\Yii::$app->formatter->booleanFormat, [
             'size' => 1
         ]);
         echo $form->field($this, 'titles_row_number');
@@ -430,19 +440,24 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
             
 
             
-            $this->_initImages($element, $row);
+            //$this->_initImages($element, $row);
             
             $result->data = $this->matching;
             $result->message = ($isUpdate === true ? "Элемент обновлен" : 'Элемент создан');
 
-            $element->relatedPropertiesModel->initAllProperties();
-            $rp = Json::encode($element->relatedPropertiesModel->toArray());
+            //$element->relatedPropertiesModel->initAllProperties();
+            //print_r($element->relatedPropertiesModel->toArray());die;
+            //$rp = Json::encode($element->relatedPropertiesModel->toArray());
             $rp = '';
             $result->html = <<<HTML
-Элемент: <a href="{$element->url}" data-pjax="0" target="_blank">{$element->id}</a> $rp
+Элемент: <a href="{$element->url}" data-pjax="0" target="_blank">{$element->id}</a>
 HTML;
             //unset($element->relatedPropertiesModel);
-            unset($element);
+            /*foreach ($element->relatedPropertiesModel->properties as $property)
+            {
+                unset($property);
+            }*/
+
 
 
         } catch (\Exception $e) {
@@ -457,8 +472,31 @@ HTML;
             }
         }
 
+        unset($shopProduct);
+        unset($rp);
+        unset($element->shopProduct);
+        unset($element);
 
         return $result;
+    }
+
+
+    /**
+     * @return bool
+     */
+    public function beforeExecute()
+    {
+        if ($this->shop_supplier_id && $this->shop_store_id && $this->is_quantity_clean) {
+
+            $query = $this->shop_supplier_id;
+            $query = $this->appCompany->getAppCompanyElements()->select(['cms_content_element_id']);
+            if ($updated = ShopProduct::updateAll(['quantity' => 0], ['in', 'id', $query])) {
+                $this->getResult()->stdout("Обнулено: " . $updated);
+            }
+
+        }
+
+        return true;
     }
 
 }
