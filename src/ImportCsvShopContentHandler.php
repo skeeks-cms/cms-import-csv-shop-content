@@ -26,6 +26,9 @@ use yii\helpers\VarDumper;
 use yii\widgets\ActiveForm;
 
 /**
+ * @property ShopSupplier $shopSupplier
+ * @property ShopStore    $shopStore
+ *
  * @author Semenov Alexander <semenov@skeeks.com>
  */
 class ImportCsvShopContentHandler extends ImportCsvContentHandler
@@ -50,9 +53,6 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
      * @var bool Обнулить количество у файлов которых нет в файле?
      */
     public $is_quantity_clean = false;
-
-
-
 
 
     public function init()
@@ -95,19 +95,19 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
     public function attributeLabels()
     {
         return ArrayHelper::merge(parent::attributeLabels(), [
-            'shop_supplier_id' => 'Поставщик',
-            'shop_store_id' => 'Поставка/Склад',
+            'shop_supplier_id'    => 'Поставщик',
+            'shop_store_id'       => 'Поставка/Склад',
             'is_save_source_data' => 'Сохранять исходные данные по товару?',
-            'is_quantity_clean' => 'Обнулить количество у товаров которых нет в файле?'
+            'is_quantity_clean'   => 'Обнулить количество у товаров которых нет в файле?',
         ]);
     }
 
     public function attributeHints()
     {
         return ArrayHelper::merge(parent::attributeHints(), [
-            'shop_supplier_id' => 'Если выран поставщик, то все товары будут привязаны к этому поставщику',
-            'shop_store_id' => 'Наличие будет указано на этом складе',
-            'is_save_source_data' => 'Если выбрано да, то все исходные данные по товару будут сохранены в специальное поле.'
+            'shop_supplier_id'    => 'Если выран поставщик, то все товары будут привязаны к этому поставщику',
+            'shop_store_id'       => 'Наличие будет указано на этом складе',
+            'is_save_source_data' => 'Если выбрано да, то все исходные данные по товару будут сохранены в специальное поле.',
         ]);
     }
 
@@ -125,9 +125,9 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
             )
             ),
             [
-            'size'             => 1,
-            'data-form-reload' => 'true',
-        ]);
+                'size'             => 1,
+                'data-form-reload' => 'true',
+            ]);
 
         if ($this->shop_supplier_id) {
             echo $form->field($this, 'shop_store_id')->listBox(
@@ -135,9 +135,9 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
                     ShopStore::find()->where(['shop_supplier_id' => $this->shop_supplier_id])->all(), 'id', 'asText'
                 )),
                 [
-                'size'             => 1,
-                'data-form-reload' => 'true',
-            ]);
+                    'size'             => 1,
+                    'data-form-reload' => 'true',
+                ]);
         }
 
         echo $form->field($this, 'content_id')->listBox(
@@ -151,13 +151,13 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
         ]);
 
         echo $form->field($this, 'new_elements_is_active')->listBox(\Yii::$app->formatter->booleanFormat, [
-            'size' => 1
+            'size' => 1,
         ]);
         echo $form->field($this, 'is_save_source_data')->listBox(\Yii::$app->formatter->booleanFormat, [
-            'size' => 1
+            'size' => 1,
         ]);
         echo $form->field($this, 'is_quantity_clean')->listBox(\Yii::$app->formatter->booleanFormat, [
-            'size' => 1
+            'size' => 1,
         ]);
         echo $form->field($this, 'titles_row_number');
 
@@ -165,7 +165,7 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
             echo $form->field($this, 'matching')->widget(
                 \skeeks\cms\importCsv\widgets\MatchingInput::className(),
                 [
-                    'columns' => $this->getAvailableFields()
+                    'columns' => $this->getAvailableFields(),
                 ]
             );
         }
@@ -192,16 +192,14 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
 
                     $shopStoreProduct->quantity = $value;
                     if (!$shopStoreProduct->save()) {
-                        throw new Exception("Не сохранилось количество на складе: {$value} " . Json::encode($shopStoreProduct->errors));
+                        throw new Exception("Не сохранилось количество на складе: {$value} ".Json::encode($shopStoreProduct->errors));
                     }
 
                 }
             }
-            
-            
+
+
             $shopProduct->{$realName} = $value;
-
-
 
 
             /*if (!$shopProduct->save()) {
@@ -315,7 +313,6 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
                 } else if (strpos("field_".$this->unique_field, 'property.')) {
 
 
-
                     $realName = str_replace("property.", "", $this->unique_field);
 
                     /**
@@ -388,7 +385,7 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
                 $shopProduct->product_type = ShopProduct::TYPE_OFFERS;
 
                 $shopProductIsUpdate = true;
-                
+
                 if (!$shopProduct->save()) {
                     throw new Exception("Ошибка сохранения shopProduct: ".print_r($shopProduct->errors, true));
                 }
@@ -396,7 +393,7 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
             $element->refresh();
 
             $shopProductIsUpdate = false;
-            
+
             foreach ($this->matching as $number => $fieldName) {
                 $is_update_rewrite = true;
 
@@ -418,13 +415,13 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
 
                 }
             }
-            
+
             if ($this->is_save_source_data) {
                 $data = $this->getRowDataWithHeaders($row);
                 $shopProductIsUpdate = true;
                 $element->shopProduct->supplier_external_jsondata = $data;
             }
-            
+
             if ($shopProductIsUpdate) {
 
                 if ($this->shop_supplier_id) {
@@ -434,14 +431,12 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
                 if (!$element->shopProduct->save()) {
                     throw new Exception('Свойство магазина не сохранено: '.Json::encode($element->shopProduct->errors));
                 }
-                
+
             }
 
-            
 
-            
             //$this->_initImages($element, $row);
-            
+
             $result->data = $this->matching;
             $result->message = ($isUpdate === true ? "Элемент обновлен" : 'Элемент создан');
 
@@ -459,14 +454,13 @@ HTML;
             }*/
 
 
-
         } catch (\Exception $e) {
             $result->success = false;
             $result->message = $e->getMessage();
             $result->message = VarDumper::dumpAsString($e, 5);
 
             if ($element && !$element->isNewRecord) {
-                 $result->html = <<<HTML
+                $result->html = <<<HTML
 Элемент: <a href="{$element->url}" data-pjax="0" target="_blank">{$element->id}</a>
 HTML;
             }
@@ -480,18 +474,44 @@ HTML;
         return $result;
     }
 
+    /**
+     * @return ShopSupplier
+     */
+    public function getShopSupplier()
+    {
+        $query = ShopSupplier::find()->where(['id' => $this->shop_supplier_id])>one();
+        return $query;
+    }
+
+    /**
+     * @return ShopStore
+     */
+    public function getShopStore()
+    {
+        $query = ShopStore::find()->where(['id' => $this->shop_store_id])->one();
+        return $query;
+    }
+
 
     /**
      * @return bool
      */
     public function beforeExecute()
     {
+        //Если задан склад и нужно удалять наличие которых нет в файле
         if ($this->shop_supplier_id && $this->shop_store_id && $this->is_quantity_clean) {
 
-            $query = $this->shop_supplier_id;
-            $query = $this->appCompany->getAppCompanyElements()->select(['cms_content_element_id']);
-            if ($updated = ShopProduct::updateAll(['quantity' => 0], ['in', 'id', $query])) {
-                $this->getResult()->stdout("Обнулено: " . $updated);
+            /*$query = $this->shopStore
+                ->getShopStoreProducts()
+                ->select(['shop_product_id'])
+            ;
+
+            if ($updated = ShopStoreProduct::updateAll(['quantity' => 0], ['in', 'shop_product_id', $query])) {
+                $this->getResult()->stdout("Обнулено: ".$updated);
+            }*/
+
+            if ($updated = ShopStoreProduct::updateAll(['quantity' => 0], ['shop_store_id' => $this->shop_store_id])) {
+                $this->getResult()->stdout("Обнулено: ".$updated);
             }
 
         }
