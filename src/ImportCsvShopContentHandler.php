@@ -33,10 +33,6 @@ use yii\widgets\ActiveForm;
  */
 class ImportCsvShopContentHandler extends ImportCsvContentHandler
 {
-    /**
-     * @var null Поставщик
-     */
-    public $shop_supplier_id = null;
 
     /**
      * @var null Склад
@@ -85,7 +81,7 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
     public function rules()
     {
         return ArrayHelper::merge(parent::rules(), [
-            [['shop_supplier_id', 'shop_store_id'], 'integer'],
+            [['shop_store_id'], 'integer'],
             ['is_save_source_data', 'boolean'],
             ['is_quantity_clean', 'boolean'],
         ]);
@@ -95,7 +91,6 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
     public function attributeLabels()
     {
         return ArrayHelper::merge(parent::attributeLabels(), [
-            'shop_supplier_id'    => 'Поставщик',
             'shop_store_id'       => 'Поставка/Склад',
             'is_save_source_data' => 'Сохранять исходные данные по товару?',
             'is_quantity_clean'   => 'Обнулить количество у товаров которых нет в файле?',
@@ -105,7 +100,6 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
     public function attributeHints()
     {
         return ArrayHelper::merge(parent::attributeHints(), [
-            'shop_supplier_id'    => 'Если выран поставщик, то все товары будут привязаны к этому поставщику',
             'shop_store_id'       => 'Наличие будет указано на этом складе',
             'is_save_source_data' => 'Если выбрано да, то все исходные данные по товару будут сохранены в специальное поле.',
         ]);
@@ -119,20 +113,10 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
     {
         $this->renderCsvConfigForm($form);
 
-        echo $form->field($this, 'shop_supplier_id')->listBox(
-            ArrayHelper::merge(['' => ' - '], ArrayHelper::map(
-                ShopSupplier::find()->all(), 'id', 'asText'
-            )
-            ),
-            [
-                'size'             => 1,
-                'data-form-reload' => 'true',
-            ]);
-
-        if ($this->shop_supplier_id) {
+        if (\Yii::$app->skeeks->site->shopStores) {
             echo $form->field($this, 'shop_store_id')->listBox(
                 ArrayHelper::merge(['' => ' - '], ArrayHelper::map(
-                    ShopStore::find()->where(['shop_supplier_id' => $this->shop_supplier_id])->all(), 'id', 'asText'
+                    \Yii::$app->skeeks->site->shopStores, 'id', 'asText'
                 )),
                 [
                     'size'             => 1,
@@ -304,9 +288,9 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
                     $elementQuery = ShopCmsContentElement::find()->joinWith('shopProduct as shopProduct')
                         ->andWhere(['shopProduct.supplier_external_id' => $uniqueValue]);
 
-                    if ($this->shop_supplier_id) {
+                    /*if ($this->shop_supplier_id) {
                         $elementQuery->andWhere(['shopProduct.shop_supplier_id' => $this->shop_supplier_id]);
-                    }
+                    }*/
 
                     $element = $elementQuery->one();
 
@@ -424,9 +408,9 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
 
             if ($shopProductIsUpdate) {
 
-                if ($this->shop_supplier_id) {
+                /*if ($this->shop_supplier_id) {
                     $element->shopProduct->shop_supplier_id = $this->shop_supplier_id;
-                }
+                }*/
 
                 if (!$element->shopProduct->save()) {
                     throw new Exception('Свойство магазина не сохранено: '.Json::encode($element->shopProduct->errors));
@@ -435,7 +419,7 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
             }
 
 
-            //$this->_initImages($element, $row);
+            $this->_initImages($element, $row);
 
             $result->data = $this->matching;
             $result->message = ($isUpdate === true ? "Элемент обновлен" : 'Элемент создан');
@@ -499,22 +483,14 @@ HTML;
     public function beforeExecute()
     {
         //Если задан склад и нужно удалять наличие которых нет в файле
-        if ($this->shop_supplier_id && $this->shop_store_id && $this->is_quantity_clean) {
+        /*if ($this->shop_supplier_id && $this->shop_store_id && $this->is_quantity_clean) {
 
-            /*$query = $this->shopStore
-                ->getShopStoreProducts()
-                ->select(['shop_product_id'])
-            ;
-
-            if ($updated = ShopStoreProduct::updateAll(['quantity' => 0], ['in', 'shop_product_id', $query])) {
-                $this->getResult()->stdout("Обнулено: ".$updated);
-            }*/
-
+          
             if ($updated = ShopStoreProduct::updateAll(['quantity' => 0], ['shop_store_id' => $this->shop_store_id])) {
                 $this->getResult()->stdout("Обнулено: ".$updated);
             }
 
-        }
+        }*/
 
         return true;
     }
