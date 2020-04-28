@@ -11,6 +11,7 @@ namespace skeeks\cms\importCsvShopContent;
 use skeeks\cms\importCsv\helpers\CsvImportRowResult;
 use skeeks\cms\importCsvContent\ImportCsvContentHandler;
 use skeeks\cms\models\CmsContent;
+use skeeks\cms\models\CmsContentElement;
 use skeeks\cms\models\CmsContentProperty;
 use skeeks\cms\shop\models\ShopCmsContentElement;
 use skeeks\cms\shop\models\ShopProduct;
@@ -230,7 +231,6 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
                 $price = new ShopProductPrice();
                 $price->type_price_id = $priceTypeId;
                 $price->product_id = $shopProduct->id;
-                $price->currency_code = "RUB";
                 $price->price = (float)$value;
             }
 
@@ -282,7 +282,11 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
             if ($uniqueValue) {
                 if (strpos("field_".$this->unique_field, 'element.')) {
                     $realName = str_replace("element.", "", $this->unique_field);
-                    $element = CmsContentElement::find()->where([$realName => $uniqueValue])->one();
+                    $element = ShopCmsContentElement::find()
+                        ->where([$realName => $uniqueValue])
+                        ->andWhere(["cms_site_id" => \Yii::$app->skeeks->site->id])
+                        ->andWhere(["content_id" => $this->content_id])
+                        ->one();
 
                 } else if (strpos("field_".$this->unique_field, 'shop.')) {
                     $elementQuery = ShopCmsContentElement::find()->joinWith('shopProduct as shopProduct')
@@ -364,9 +368,9 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
                 $shopProduct = new ShopProduct();
                 $shopProduct->quantity = 0;
                 $shopProduct->baseProductPriceValue = 0;
-                $shopProduct->baseProductPriceCurrency = "RUB";
+                $shopProduct->baseProductPriceCurrency = \Yii::$app->money->currencyCode;
                 $shopProduct->id = $element->id;
-                $shopProduct->product_type = ShopProduct::TYPE_OFFERS;
+                //$shopProduct->product_type = ShopProduct::TYPE_OFFERS;
 
                 $shopProductIsUpdate = true;
 
