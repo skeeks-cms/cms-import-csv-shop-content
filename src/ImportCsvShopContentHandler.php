@@ -18,7 +18,6 @@ use skeeks\cms\shop\models\ShopProduct;
 use skeeks\cms\shop\models\ShopProductPrice;
 use skeeks\cms\shop\models\ShopStore;
 use skeeks\cms\shop\models\ShopStoreProduct;
-use skeeks\cms\shop\models\ShopSupplier;
 use yii\base\Exception;
 use yii\db\ActiveQuery;
 use yii\helpers\ArrayHelper;
@@ -27,7 +26,6 @@ use yii\helpers\VarDumper;
 use yii\widgets\ActiveForm;
 
 /**
- * @property ShopSupplier $shopSupplier
  * @property ShopStore    $shopStore
  *
  * @author Semenov Alexander <semenov@skeeks.com>
@@ -462,14 +460,6 @@ HTML;
         return $result;
     }
 
-    /**
-     * @return ShopSupplier
-     */
-    public function getShopSupplier()
-    {
-        $query = ShopSupplier::find()->where(['id' => $this->shop_supplier_id])>one();
-        return $query;
-    }
 
     /**
      * @return ShopStore
