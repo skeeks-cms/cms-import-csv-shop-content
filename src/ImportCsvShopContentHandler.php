@@ -477,14 +477,17 @@ HTML;
     public function beforeExecute()
     {
         //Если задан склад и нужно удалять наличие которых нет в файле
-        /*if ($this->shop_supplier_id && $this->shop_store_id && $this->is_quantity_clean) {
-
-          
-            if ($updated = ShopStoreProduct::updateAll(['quantity' => 0], ['shop_store_id' => $this->shop_store_id])) {
-                $this->getResult()->stdout("Обнулено: ".$updated);
+        if ($this->is_quantity_clean) {
+            if ($this->shop_store_id) {
+                if ($updated = ShopStoreProduct::updateAll(['quantity' => 0], ['shop_store_id' => $this->shop_store_id])) {
+                    $this->getResult()->stdout("Обнулено: ".$updated);
+                }
             }
 
-        }*/
+            /*if ($updated = ShopProduct::updateAll(['quantity' => 0], ['shop_store_id' => $this->shop_store_id])) {
+                $this->getResult()->stdout("Обнулено: ".$updated);
+            }*/
+        }
 
         return true;
     }
