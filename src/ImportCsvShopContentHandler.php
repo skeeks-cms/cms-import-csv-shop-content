@@ -64,7 +64,17 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
         $fields = parent::getAvailableFields();
 
         foreach ((new ShopProduct())->attributeLabels() as $key => $name) {
-            $fields['shop.'.$key] = $name.' [магазин]';
+            if (in_array($key, [
+                'quantity',
+                'weight',
+                'measure_code',
+                'measure_ratio',
+                'width',
+                'length',
+                'height',
+            ])) {
+                $fields['shop.'.$key] = $name.' [магазин]';
+            }
         }
 
         foreach (\Yii::$app->shop->shopTypePrices as $price) {
