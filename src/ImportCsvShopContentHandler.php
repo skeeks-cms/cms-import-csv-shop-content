@@ -385,7 +385,11 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
                 if (!$shopProduct->save()) {
                     throw new Exception("Ошибка сохранения shopProduct: ".print_r($shopProduct->errors, true));
                 }
+
+                unset($shopProduct);
             }
+
+
             $element->refresh();
 
             $shopProductIsUpdate = false;
@@ -412,6 +416,8 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
                 }
             }
 
+
+
             if ($this->is_save_source_data) {
                 $data = $this->getRowDataWithHeaders($row);
                 $shopProductIsUpdate = true;
@@ -434,14 +440,14 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
             $this->_initImages($element, $row);
 
             $result->data = $this->matching;
-            $result->message = ($isUpdate === true ? "Элемент обновлен" : 'Элемент создан');
+            $result->message = ($isUpdate === true ? "Элемент обновлен " : 'Элемент создан ');
 
             //$element->relatedPropertiesModel->initAllProperties();
             //print_r($element->relatedPropertiesModel->toArray());die;
             //$rp = Json::encode($element->relatedPropertiesModel->toArray());
             $rp = '';
             $result->html = <<<HTML
-Элемент: <a href="{$element->url}" data-pjax="0" target="_blank">{$element->id}</a>
+Товар: <a href="{$element->url}" data-pjax="0" target="_blank">{$element->id}</a>
 HTML;
             //unset($element->relatedPropertiesModel);
             /*foreach ($element->relatedPropertiesModel->properties as $property)
@@ -457,15 +463,16 @@ HTML;
 
             if ($element && !$element->isNewRecord) {
                 $result->html = <<<HTML
-Элемент: <a href="{$element->url}" data-pjax="0" target="_blank">{$element->id}</a>
+Товар: <a href="{$element->url}" data-pjax="0" target="_blank">{$element->id}</a>
 HTML;
             }
         }
 
-        unset($shopProduct);
-        unset($rp);
+        unset($element->cmsSite);
         unset($element->shopProduct);
         unset($element);
+
+
 
         return $result;
     }
