@@ -67,11 +67,15 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
             if (in_array($key, [
                 'quantity',
                 'weight',
+
                 'measure_code',
                 'measure_ratio',
+
                 'width',
                 'length',
                 'height',
+
+                'barcodes',
             ])) {
                 $fields['shop.'.$key] = $name.' [магазин]';
             }
