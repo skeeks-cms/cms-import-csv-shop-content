@@ -371,7 +371,7 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
             }
 
             if (!$element->relatedPropertiesModel->save()) {
-                throw new Exception("Ошибка сохранения данных свойств элемента: ".print_r($element->relatedPropertiesModel->errors, true));
+                throw new Exception("Ошибка сохранения данных свойств элемента: ".print_r($element->relatedPropertiesModel->errors, true).print_r($element->relatedPropertiesModel->toArray(), true));
             }
 
             //Тут работа с данными по товару
