@@ -9,6 +9,10 @@ return [
                 'skeeks\cms\importCsvShopContent\ImportCsvShopContentHandler' =>
                 [
                     'class' => 'skeeks\cms\importCsvShopContent\ImportCsvShopContentHandler'
+                ],
+                'skeeks\cms\importCsvShopContent\ImportCsvShopStoreProductHandler' =>
+                [
+                    'class' => 'skeeks\cms\importCsvShopContent\ImportCsvShopStoreProductHandler'
                 ]
             ]
         ],
