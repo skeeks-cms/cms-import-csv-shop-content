@@ -244,8 +244,8 @@ HTML;
                 if (is_array($fieldName)) {
                     $is_update_rewrite = (bool) ArrayHelper::getValue($fieldName, 'is_update_rewrite');
                     $fieldName = $fieldName['code'];
-
                 }
+                
                 if ($element->isNewRecord) {
                     $this->_initModelByField($element, $fieldName, $row[$number]);
                 } else {
@@ -265,12 +265,11 @@ HTML;
         if (strpos("field_".$fieldName, 'shop_store_product.')) {
             $realName = str_replace("shop_store_product.", "", $fieldName);
 
-            if (in_array($realName, ['purchase_price', 'selling_price'])) {
+            if (in_array($realName, ['purchase_price', 'selling_price', 'quantity'])) {
                 $value = trim(str_replace(",", ".", $value));
                 $value = str_replace(" ", "", $value);
                 $value = (float) $value;
             }
-
 
             $cmsContentElement->{$realName} = $value;
         }
