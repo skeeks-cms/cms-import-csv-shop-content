@@ -143,6 +143,7 @@ class ImportCsvShopStoreProductHandler extends ImportCsvHandler
         ]);
 
         if ($this->shop_store_id && $this->rootFilePath && file_exists($this->rootFilePath)) {
+            echo '11111';
             echo $form->field($this, 'matching')->widget(
                 \skeeks\cms\importCsv\widgets\MatchingInput::className(),
                 [
@@ -389,6 +390,59 @@ HTML;
         }
 
         return true;
+    }
+
+
+
+
+    public function execute()
+    {
+        ini_set("memory_limit", "8192M");
+        set_time_limit(0);
+
+        $base_memory_usage = memory_get_usage();
+        $this->memoryUsage(memory_get_usage(), $base_memory_usage);
+
+        $this->beforeExecute();
+
+        $rows = $this->getCsvColumnsData($this->startRow, $this->endRow);
+        $results = [];
+        $totalSuccess = 0;
+        $totalErrors = 0;
+
+        $this->result->stdout("\tCSV import: c {$this->startRow} по {$this->endRow}\n");
+        $this->result->stdout("\t\t\t" . $this->memoryUsage(memory_get_usage(), $base_memory_usage) . "\n");
+        sleep(5);
+
+        foreach ($rows as $number => $data) {
+            $baseRowMemory = memory_get_usage();
+            $result = $this->import($number, $data);
+            if ($result->success) {
+                $this->result->stdout("\tСтрока: {$number}: {$result->message}\n");
+                $totalSuccess++;
+            } else {
+                $this->result->stdout("\tСтрока: {$number}: ошибка: {$result->message}\n");
+                $totalErrors++;
+            }
+
+            //$this->result->stdout("\t\t\t memory: " . $this->memoryUsage(memory_get_usage(), $baseRowMemory) . "\n");
+            unset($rows[$number]);
+            unset($result);
+            //$this->result->stdout("\t\t\t memory: " . $this->memoryUsage(memory_get_usage(), $baseRowMemory) . "\n");
+
+            if ($number % 25 == 0) {
+                $this->result->stdout("\t\t\t Total memory: " . $this->memoryUsage(memory_get_usage(), $base_memory_usage) . "\n");
+            }
+            gc_collect_cycles();
+            //$results[$number] = $result;
+        }
+
+        return $this->result;
+    }
+
+    public function memoryUsage($usage, $base_memory_usage)
+    {
+        return \Yii::$app->formatter->asSize($usage - $base_memory_usage);
     }
 
 
