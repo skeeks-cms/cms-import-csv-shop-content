@@ -233,6 +233,7 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
 
             $value = trim(str_replace(",", ".", $value));
             $value = str_replace(" ", "", $value);
+            $value = str_replace(" ", "", $value);
 
             /**
              * @var ShopProductPrice $price

@@ -143,7 +143,6 @@ class ImportCsvShopStoreProductHandler extends ImportCsvHandler
         ]);
 
         if ($this->shop_store_id && $this->rootFilePath && file_exists($this->rootFilePath)) {
-            echo '11111';
             echo $form->field($this, 'matching')->widget(
                 \skeeks\cms\importCsv\widgets\MatchingInput::className(),
                 [
@@ -198,6 +197,7 @@ HTML;
 
         } catch (\Exception $e) {
 
+            //throw $e;
             $result->success = false;
             $result->message = $e->getMessage();
 
@@ -248,10 +248,10 @@ HTML;
                 }
                 
                 if ($element->isNewRecord) {
-                    $this->_initModelByField($element, $fieldName, $row[$number]);
+                    $this->_initModelByField($element, $fieldName, ArrayHelper::getValue($row, $number));
                 } else {
                     if ($is_update_rewrite) {
-                        $this->_initModelByField($element, $fieldName, $row[$number]);
+                        $this->_initModelByField($element, $fieldName, ArrayHelper::getValue($row, $number));
                     }
                 }
 
@@ -269,6 +269,7 @@ HTML;
             if (in_array($realName, ['purchase_price', 'selling_price', 'quantity'])) {
                 $value = trim(str_replace(",", ".", $value));
                 $value = str_replace(" ", "", $value);
+                $value = str_replace(" ", "", $value);
                 $value = (float) $value;
             }
 
