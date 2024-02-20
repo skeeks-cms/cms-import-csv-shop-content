@@ -26,7 +26,7 @@ use yii\helpers\VarDumper;
 use yii\widgets\ActiveForm;
 
 /**
- * @property ShopStore    $shopStore
+ * @property ShopStore $shopStore
  *
  * @author Semenov Alexander <semenov@skeeks.com>
  */
@@ -138,11 +138,9 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
         }
 
         echo $form->field($this, 'content_id')->listBox(
-            ArrayHelper::merge(['' => ' - '], CmsContent::getDataForSelect(true, function (ActiveQuery $activeQuery) {
-                $activeQuery->andWhere([
-                    'id' => \yii\helpers\ArrayHelper::map(\skeeks\cms\shop\models\ShopContent::find()->all(), 'content_id', 'content_id'),
-                ]);
-            })), [
+            ArrayHelper::merge(['' => ' - '], [
+                \Yii::$app->shop->contentProducts->id => \Yii::$app->shop->contentProducts->name
+            ]), [
             'size'             => 1,
             'data-form-reload' => 'true',
         ]);
@@ -422,7 +420,6 @@ class ImportCsvShopContentHandler extends ImportCsvContentHandler
             }
 
 
-
             if ($this->is_save_source_data) {
                 $data = $this->getRowDataWithHeaders($row);
                 $shopProductIsUpdate = true;
@@ -476,7 +473,6 @@ HTML;
         unset($element->cmsSite);
         unset($element->shopProduct);
         unset($element);
-
 
 
         return $result;
