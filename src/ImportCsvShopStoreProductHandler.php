@@ -19,6 +19,7 @@ use skeeks\cms\shop\models\ShopProduct;
 use skeeks\cms\shop\models\ShopProductPrice;
 use skeeks\cms\shop\models\ShopStore;
 use skeeks\cms\shop\models\ShopStoreProduct;
+use skeeks\cms\Skeeks;
 use yii\base\Exception;
 use yii\db\ActiveQuery;
 use yii\helpers\ArrayHelper;
@@ -168,23 +169,47 @@ class ImportCsvShopStoreProductHandler extends ImportCsvHandler
             $element = $this->_initElement($number, $row);
             $this->_initElementData($number, $row, $element);
 
-            $isUpdate = $element->isNewRecord ? false : true;
+            $isNeedSave = false;
+            if ($element->isNewRecord) {
+                $isNeedSave = true;
+                $result->message = 'Товар создан';
+            } else {
+                //Нужно проверить а изменились ли данные?
+                
+                $updateAttributes = [];
 
-            if (!$element->save()) {
-                throw new Exception("Ошибка сохранения данных элемента: ".print_r($element->errors, true));
-            }
-
-            if ($this->is_save_source_data) {
-                $data = $this->getRowDataWithHeaders($row);
-                $element->external_data = $data;
-
-                if (!$element->save()) {
-                    throw new Exception('Свойство магазина не сохранено: '.Json::encode($element->errors));
+                if ((float)$element->selling_price != (float)$element->getOldAttribute("selling_price")) {
+                    $updateAttributes[] = "selling_price";
+                }
+    
+                if ((float)$element->purchase_price != (float)$element->getOldAttribute("purchase_price")) {
+                    $updateAttributes[] = "purchase_price";
+                }
+    
+                if ((float)$element->quantity != (float)$element->getOldAttribute("quantity")) {
+                    $updateAttributes[] = "quantity";
+                }
+                
+                if ($updateAttributes) {
+                    $isNeedSave = true;
+                    $result->message = 'Товар обновлен';
+                } else {
+                    $result->message = 'Товар не изменился';
                 }
             }
 
+            if ($isNeedSave) {
+                if ($this->is_save_source_data) {
+                    $data = $this->getRowDataWithHeaders($row);
+                    $element->external_data = $data;
+                }
+    
+                if (!$element->save()) {
+                    throw new Exception("Ошибка сохранения данных элемента: ".print_r($element->errors, true));
+                }
+            }
+            
             $result->data = $this->matching;
-            $result->message = ($isUpdate === true ? "Элемент обновлен" : 'Элемент создан');
 
             //$element->relatedPropertiesModel->initAllProperties();
             //$rp = Json::encode($element->relatedPropertiesModel->toArray());
@@ -277,6 +302,8 @@ HTML;
         }
     }
 
+    protected $_updated_codes = [];
+    
     /**
      * @param $number
      * @param $row
@@ -288,9 +315,12 @@ HTML;
         if (!$this->unique_field) {
             $element = new ShopStoreProduct();
             $element->shop_store_id = $this->shop_store_id;
+            throw new Exception('Не задано уникальное значение');
         } else {
+            
             $uniqueValue = trim($this->getValue($this->unique_field, $row));
-
+            $this->_updated_codes[] = $uniqueValue;
+            
             if ($uniqueValue) {
                 if (strpos("field_".$this->unique_field, 'shop_store_product.')) {
                     $realName = str_replace("shop_store_product.", "", $this->unique_field);
@@ -378,29 +408,70 @@ HTML;
     public function beforeExecute()
     {
         //Если задан склад и нужно удалять наличие которых нет в файле
-        if ($this->is_quantity_clean) {
+        /*if ($this->is_quantity_clean) {
             if ($this->shop_store_id) {
                 if ($updated = ShopStoreProduct::updateAll(['quantity' => 0], ['shop_store_id' => $this->shop_store_id])) {
                     $this->getResult()->stdout("Обнулено: ".$updated);
                 }
             }
-
-            /*if ($updated = ShopProduct::updateAll(['quantity' => 0], ['shop_store_id' => $this->shop_store_id])) {
-                $this->getResult()->stdout("Обнулено: ".$updated);
-            }*/
-        }
+        }*/
 
         return true;
     }
 
 
 
+    
+    protected function _afterExecute() {
+        //Проверка обнуления
+
+
+        $totalInProgress = count($this->_updated_codes);
+        $this->_result->stdout("Обработано товаров: {$totalInProgress}\n");
+
+        $q = $this->shopStore->getShopStoreProducts()->andWhere(['>', 'quantity', 0]);
+        if (!$this->_updated_codes) {
+            $this->_result->stdout("\tВ файле нет товаров!\n");
+        }
+
+        $q->andWhere(['not in', 'external_id', $this->_updated_codes]);
+
+        if ($total = $q->count()) {
+
+            $this->_result->stdout("Обнуление товаров, которых нет в файле [{$total}]\n");
+            $counter = 0;
+            Console::startProgress($counter, $total);
+            foreach ($q->each(100) as $shopStoreProduct) {
+                //TODO:добавить проверку обновления
+                $shopStoreProduct->quantity = 0;
+                $shopStoreProduct->save();
+
+                $counter++;
+                Console::startProgress($counter, $total);
+            }
+
+            Console::endProgress();
+        } else {
+            $this->_result->stdout("Обнулять ничего не нужно \n");
+        }
+    }
+
+    
 
     public function execute()
     {
-        ini_set("memory_limit", "8192M");
-        set_time_limit(0);
+        Skeeks::unlimited();
 
+        if (!$this->shopStore) {
+            throw new Exception("Склад не найден {$this->shop_store_id}");
+        }
+        
+        
+        if (!$this->unique_field) {
+            throw new Exception("Не указана уникальная колонка");
+        }
+        
+        
         $base_memory_usage = memory_get_usage();
         $this->memoryUsage(memory_get_usage(), $base_memory_usage);
 
@@ -413,7 +484,6 @@ HTML;
 
         $this->result->stdout("\tCSV import: c {$this->startRow} по {$this->endRow}\n");
         $this->result->stdout("\t\t\t" . $this->memoryUsage(memory_get_usage(), $base_memory_usage) . "\n");
-        sleep(5);
 
         foreach ($rows as $number => $data) {
             $baseRowMemory = memory_get_usage();
@@ -437,6 +507,8 @@ HTML;
             gc_collect_cycles();
             //$results[$number] = $result;
         }
+
+        $this->_afterExecute();
 
         return $this->result;
     }
